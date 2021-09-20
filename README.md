@@ -1,150 +1,101 @@
-<div align="center">
-  <img src="resources/mmdet-logo.png" width="600"/>
-</div>
+# Decoupled R-CNN
 
-**News**: We released the technical report on [ArXiv](https://arxiv.org/abs/1906.07155).
-
-Documentation: https://mmdetection.readthedocs.io/
+- This code is an official implementation of "IoU Regression with H+L-Sampling for Accurate
+Detection Confidence" based on the open source object detection toolbox [mmdetection](https://github.com/open-mmlab/mmdetection). 
 
 ## Introduction
-
-MMDetection is an open source object detection toolbox based on PyTorch. It is
-a part of the OpenMMLab project developed by [Multimedia Laboratory, CUHK](http://mmlab.ie.cuhk.edu.hk/).
-
-The master branch works with **PyTorch 1.3 to 1.6**.
-The old v1.x branch works with PyTorch 1.1 to 1.4, but v2.0 is strongly recommended for faster speed, higher performance, better design and more friendly usage.
-
-![demo image](resources/coco_test_12510.jpg)
-
-### Major features
-
-- **Modular Design**
-
-  We decompose the detection framework into different components and one can easily construct a customized object detection framework by combining different modules.
-
-- **Support of multiple frameworks out of box**
-
-  The toolbox directly supports popular and contemporary detection frameworks, *e.g.* Faster RCNN, Mask RCNN, RetinaNet, etc.
-
-- **High efficiency**
-
-  All basic bbox and mask operations run on GPUs. The training speed is faster than or comparable to other codebases, including [Detectron2](https://github.com/facebookresearch/detectron2), [maskrcnn-benchmark](https://github.com/facebookresearch/maskrcnn-benchmark) and [SimpleDet](https://github.com/TuSimple/simpledet).
-
-- **State of the art**
-
-  The toolbox stems from the codebase developed by the *MMDet* team, who won [COCO Detection Challenge](http://cocodataset.org/#detection-leaderboard) in 2018, and we keep pushing it forward.
-
-Apart from MMDetection, we also released a library [mmcv](https://github.com/open-mmlab/mmcv) for computer vision research, which is heavily depended on by this toolbox.
-
-## License
-
-This project is released under the [Apache 2.0 license](LICENSE).
-
-## Changelog
-
-v2.4.0 was released in 5/9/2020.
-Please refer to [changelog.md](docs/changelog.md) for details and release history.
-A comparison between v1.x and v2.0 codebases can be found in [compatibility.md](docs/compatibility.md).
-
-## Benchmark and model zoo
-
-Results and models are available in the [model zoo](docs/model_zoo.md).
-
-Supported backbones:
-- [x] ResNet
-- [x] ResNeXt
-- [x] VGG
-- [x] HRNet
-- [x] RegNet
-- [x] Res2Net
-
-Supported methods:
-- [x] [RPN](configs/rpn)
-- [x] [Fast R-CNN](configs/fast_rcnn)
-- [x] [Faster R-CNN](configs/faster_rcnn)
-- [x] [Mask R-CNN](configs/mask_rcnn)
-- [x] [Cascade R-CNN](configs/cascade_rcnn)
-- [x] [Cascade Mask R-CNN](configs/cascade_rcnn)
-- [x] [SSD](configs/ssd)
-- [x] [RetinaNet](configs/retinanet)
-- [x] [GHM](configs/ghm)
-- [x] [Mask Scoring R-CNN](configs/ms_rcnn)
-- [x] [Double-Head R-CNN](configs/double_heads)
-- [x] [Hybrid Task Cascade](configs/htc)
-- [x] [Libra R-CNN](configs/libra_rcnn)
-- [x] [Guided Anchoring](configs/guided_anchoring)
-- [x] [FCOS](configs/fcos)
-- [x] [RepPoints](configs/reppoints)
-- [x] [Foveabox](configs/foveabox)
-- [x] [FreeAnchor](configs/free_anchor)
-- [x] [NAS-FPN](configs/nas_fpn)
-- [x] [ATSS](configs/atss)
-- [x] [FSAF](configs/fsaf)
-- [x] [PAFPN](configs/pafpn)
-- [x] [Dynamic R-CNN](configs/dynamic_rcnn)
-- [x] [PointRend](configs/point_rend)
-- [x] [CARAFE](configs/carafe/README.md)
-- [x] [DCNv2](configs/dcn/README.md)
-- [x] [Group Normalization](configs/gn/README.md)
-- [x] [Weight Standardization](configs/gn+ws/README.md)
-- [x] [OHEM](configs/faster_rcnn/faster_rcnn_r50_fpn_ohem_1x_coco.py)
-- [x] [Soft-NMS](configs/faster_rcnn/faster_rcnn_r50_fpn_soft_nms_1x_coco.py)
-- [x] [Generalized Attention](configs/empirical_attention/README.md)
-- [x] [GCNet](configs/gcnet/README.md)
-- [x] [Mixed Precision (FP16) Training](configs/fp16/README.md)
-- [x] [InstaBoost](configs/instaboost/README.md)
-- [x] [GRoIE](configs/groie/README.md)
-- [x] [DetectoRS](configs/detectors/README.md)
-- [x] [Generalized Focal Loss](configs/gfl/README.md)
-- [x] [CornerNet](configs/cornernet/README.md)
-- [x] [Side-Aware Boundary Localization](configs/sabl/README.md)
-- [x] [YOLOv3](configs/yolo/README.md)
-
-Some other methods are also supported in [projects using MMDetection](./docs/projects.md).
+It is a common paradigm in object detection frameworks that the samples in training
+and testing have consistent distributions for the two main tasks: Classification and bounding box
+regression. This paradigm is popular in sampling strategy for training an object detector due to
+its intuition and practicability. For the task of localization quality estimation, there exist two ways
+of sampling: The same sampling with the main tasks and the uniform sampling by manually
+augmenting the ground-truth. The first method of sampling is simple but inconsistent for the task
+of quality estimation. The second method of uniform sampling contains all IoU level distributions
+but is more complex and difficult for training. In this paper, we propose an H+L-Sampling strategy,
+selecting the high and low IoU samples simultaneously, to effectively and simply train the branch of
+quality estimation. This strategy inherits the effectiveness of consistent sampling and reduces the
+training difficulty of uniform sampling. Finally, we introduce accurate detection confidence, which
+combines the classification probability and the localization accuracy, as the ranking keyword of NMS.
+Extensive experiments show the effectiveness of our method in solving the misalignment between
+classification confidence and localization accuracy and improving the detection performance.
 
 ## Installation
 
-Please refer to [install.md](docs/install.md) for installation and dataset preparation.
+### Requirements
+
+- Linux (Windows is not officially supported)
+- Python 3.6+
+- PyTorch 1.3 or higher
+- CUDA 9.0 or higher
+- GCC 5+
+- mmcv
+
+### Install mmdetection
+
+a. Create a conda virtual environment and activate it.
+```shell
+conda create -n open-mmlab python=3.7 -y
+conda activate open-mmlab
+```
+
+b. Install Pytorch and torchvision.
+
+```shell
+conda install pytorch==1.6.0 torchvision==0.7.0 cudatoolkit=10.1 -c pytorch
+```
+
+c. Install mmcv.
+
+```shell
+ pip install mmcv-full==1.1.2 -f https://download.openmmlab.com/mmcv/dist/cu101/torch1.6.0/index.html
+```
+
+d. Clone the mmdetection repository.
+
+```shell
+git clone --branch v.2.4.0 https://github.com/open-mmlab/mmdetection.git
+cd mmdetection
+```
+
+e. Install build requirements and then install mmdetection.
+
+```shell
+pip install -r requirements/build.txt
+pip install -v -e .  # or "python setup.py develop"
+```
+
+## Train and Inference
+All our model is trained on 4 TITAN X GPUs with a total batch size of 8 (2 images per GPU). The learning rate is initialized as 0.01.
+
+##### Train with a single GPU
+```shell
+python tools/train.py ${CONFIG_FILE}
+```
+
+##### Train with multiple GPUs
+```shell
+./tools/dist_train.sh ${CONFIG_FILE} 4 [optional arguments]
+```
+
+#####  Test with a single GPU
+
+```shell
+python tools/test.py ${CONFIG_FILE} ${CHECKPOINT_FILE} [--out ${RESULT_FILE}] [--eval ${EVAL_METRICS}] [--show]
+```
+
+#####  Test with multiple GPUs
+
+```shell
+./tools/dist_test.sh ${CONFIG_FILE} ${CHECKPOINT_FILE} ${GPU_NUM} [--out ${RESULT_FILE}] [--eval ${EVAL_METRICS}]
+```
+
+- CONFIG_FILE about D2Det is in [configs/decoupled_rcnn](configs/decoupled_rcnn), please refer to [getting_started.md](docs/getting_started.md) for more details.
 
 
-## Getting Started
+## Results
 
-Please see [getting_started.md](docs/getting_started.md) for the basic usage of MMDetection.
-We provide [colab tutorial](demo/MMDet_Tutorial.ipynb) for beginners.
-There are also tutorials for [finetuning models](docs/tutorials/finetune.md), [adding new dataset](docs/tutorials/new_dataset.md), [designing data pipeline](docs/tutorials/data_pipeline.md), and [adding new modules](docs/tutorials/new_modules.md).
+We provide some models with different backbones and results of object detection on MS COCO validation.
 
-For trouble shooting, please refer to [trouble_shooting.md](docs/trouble_shooting.md)
-
-## Contributing
-
-We appreciate all contributions to improve MMDetection. Please refer to [CONTRIBUTING.md](.github/CONTRIBUTING.md) for the contributing guideline.
 
 ## Acknowledgement
-
-MMDetection is an open source project that is contributed by researchers and engineers from various colleges and companies. We appreciate all the contributors who implement their methods or add new features, as well as users who give valuable feedbacks.
-We wish that the toolbox and benchmark could serve the growing research community by providing a flexible toolkit to reimplement existing methods and develop their own new detectors.
-
-
-## Citation
-
-If you use this toolbox or benchmark in your research, please cite this project.
-
-```
-@article{mmdetection,
-  title   = {{MMDetection}: Open MMLab Detection Toolbox and Benchmark},
-  author  = {Chen, Kai and Wang, Jiaqi and Pang, Jiangmiao and Cao, Yuhang and
-             Xiong, Yu and Li, Xiaoxiao and Sun, Shuyang and Feng, Wansen and
-             Liu, Ziwei and Xu, Jiarui and Zhang, Zheng and Cheng, Dazhi and
-             Zhu, Chenchen and Cheng, Tianheng and Zhao, Qijie and Li, Buyu and
-             Lu, Xin and Zhu, Rui and Wu, Yue and Dai, Jifeng and Wang, Jingdong
-             and Shi, Jianping and Ouyang, Wanli and Loy, Chen Change and Lin, Dahua},
-  journal= {arXiv preprint arXiv:1906.07155},
-  year={2019}
-}
-```
-
-
-## Contact
-
-This repo is currently maintained by Kai Chen ([@hellock](http://github.com/hellock)), Yuhang Cao ([@yhcao6](https://github.com/yhcao6)), Wenwei Zhang ([@ZwwWayne](https://github.com/ZwwWayne)),
-Jiarui Xu ([@xvjiarui](https://github.com/xvjiarui)). Other core developers include Jiangmiao Pang ([@OceanPang](https://github.com/OceanPang)) and Jiaqi Wang ([@myownskyW7](https://github.com/myownskyW7)).
+Many thanks to the open source codes, i.e., [mmdetection](https://github.com/open-mmlab/mmdetection).
